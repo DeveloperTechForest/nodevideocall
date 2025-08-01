@@ -26,7 +26,6 @@ io.on('connection', socket => {
     rooms.get(room).add(socket.id);
     console.log(`${userId} joined ${room} (${rooms.get(room).size} participants)`);
 
-    // Notify others in room a new peer is available (optional for mesh)
     socket.to(room).emit('peer-joined', { peerId: socket.id, userId });
   });
 
@@ -66,4 +65,7 @@ io.on('connection', socket => {
 const PORT = process.env.SIGNALING_PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Signaling server listening on port ${PORT}`);
+});
+socket.on('chat-message', ({ room, from, message }) => {
+  socket.to(room).emit('chat-message', { from, message });
 });
