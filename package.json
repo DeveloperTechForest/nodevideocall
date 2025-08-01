@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "private": true,
+  "type": "module",
+    "scripts": {
+    "start-signaling": "node signaling-server.js",
+    "build": "vite build",
+    "dev": "vite"
+    },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
+    "@tailwindcss/vite": "^4.0.0",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.8.2",
+    "concurrently": "^9.0.1",
+    "laravel-vite-plugin": "^1.2.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
+    "vite": "^6.2.4"
+  },
+  "name": "clinic",
+  "description": "<p align=\"center\"><a href=\"https://laravel.com\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg\" width=\"400\" alt=\"Laravel Logo\"></a></p>",
+  "version": "1.0.0",
+  "main": "postcss.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.11",
+    "express": "^5.1.0",
+    "puppeteer": "^24.14.0",
+    "socket.io": "^4.8.1"
+  }
+}
