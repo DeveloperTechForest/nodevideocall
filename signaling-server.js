@@ -8,33 +8,26 @@ import multer from 'multer';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 
-// === boilerplate for __dirname in ESM ===
+// === ESM __dirname helper ===
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// === config ===
+// === Config ===
 const PORT = process.env.SIGNALING_PORT || 8080;
-const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',') // e.g. "https://foo.com,https://bar.com"
-  : ['*']; // use specific list in prod
-
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
 // === Express setup ===
 const app = express();
 
-// CORS for REST endpoints
-app.use(
-  cors({
-    origin: ALLOWED_ORIGINS,
-    methods: ['GET', 'POST'],
-    credentials: true
-  })
-);
+// *** OPEN CORS for everything (development) ***
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
 
-// For parsing form data in file upload
-// multer storage
+// File upload fallback (multer)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
@@ -44,15 +37,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// serve uploaded files
+// Expose uploaded files
 app.use('/files', express.static(UPLOAD_DIR));
 
-// optional health check
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// file upload fallback endpoint
+// Upload fallback endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
@@ -78,7 +71,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ALLOWED_ORIGINS,
+    origin: '*', // allow all origins
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -93,19 +86,18 @@ io.on('connection', socket => {
   socket.on('join-room', ({ room, userId }) => {
     socket.data.userId = userId || socket.id;
     socket.join(room);
-
     if (!rooms.has(room)) rooms.set(room, new Set());
     rooms.get(room).add(socket.id);
 
-    console.log(`${socket.data.userId} joined room "${room}" (${rooms.get(room).size} participants)`);
+    console.log(`${socket.data.userId} joined "${room}" (${rooms.get(room).size})`);
 
-    // inform existing peers
+    // notify others
     socket.to(room).emit('peer-joined', {
       peerId: socket.id,
       userId: socket.data.userId
     });
 
-    // updated participant list
+    // emit participant list
     const participants = Array.from(rooms.get(room)).map(id => ({
       socketId: id,
       userId: io.sockets.sockets.get(id)?.data?.userId || null
