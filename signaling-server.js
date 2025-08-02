@@ -12,10 +12,10 @@ const __dirname = path.dirname(__filename);
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
+// multer for fallback file upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
-    // keep original name but prepend timestamp to avoid collisions
     const safe = Date.now() + '-' + file.originalname;
     cb(null, safe);
   }
@@ -43,19 +43,16 @@ io.on('connection', socket => {
   socket.on('join-room', ({ room, userId }) => {
     socket.data.userId = userId || socket.id;
     socket.join(room);
-
     if (!rooms.has(room)) rooms.set(room, new Set());
     rooms.get(room).add(socket.id);
 
     console.log(`${socket.data.userId} joined ${room} (${rooms.get(room).size} participants)`);
 
-    // Notify existing peers about the newcomer
     socket.to(room).emit('peer-joined', {
       peerId: socket.id,
       userId: socket.data.userId
     });
 
-    // Emit participant list to everyone in room
     const participants = Array.from(rooms.get(room)).map(id => ({
       socketId: id,
       userId: io.sockets.sockets.get(id)?.data?.userId || null
@@ -79,11 +76,12 @@ io.on('connection', socket => {
     }
   });
 
-  socket.on('chat-message', ({ room, from, message }) => {
+  socket.on('chat-message', ({ room, from, message, fileUrl }) => {
     if (!room) return;
     socket.to(room).emit('chat-message', {
       from,
       message,
+      fileUrl,
       timestamp: Date.now()
     });
   });
@@ -115,11 +113,10 @@ io.on('connection', socket => {
   });
 });
 
-// file upload endpoint (server-side fallback)
+// fallback file upload
 app.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const fileUrl = `/files/${req.file.filename}`;
-  // optionally broadcast to a room if provided
   const { room, from } = req.body;
   if (room) {
     io.to(room).emit('chat-message', {
